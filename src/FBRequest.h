@@ -42,7 +42,6 @@ typedef NSUInteger FBRequestState;
     BOOL                  _sessionDidExpire;
 }
 
-
 @property(nonatomic,assign) id<FBRequestDelegate> delegate;
 
 /**
@@ -84,9 +83,22 @@ typedef NSUInteger FBRequestState;
                         httpMethod:(NSString *) httpMethod
                           delegate:(id<FBRequestDelegate>)delegate
                         requestURL:(NSString *) url;
-- (BOOL) loading;
 
-- (void) connect;
+
+/*
+ * Adding support for blocks
+ */
+@property (copy) void(^FBRequestCallback)(FBRequest*, id, NSError*);
+@property (nonatomic, assign) BOOL usesBlockCallback;
+
++ (FBRequest*)getRequestWithParams:(NSMutableDictionary *)params
+                        httpMethod:(NSString *)httpMethod
+                          callback:(void(^)(FBRequest *request, id result, NSError *error))_block
+                        requestURL:(NSString *)url;
+
+- (BOOL)loading;
+
+- (void)connect;
 
 @end
 

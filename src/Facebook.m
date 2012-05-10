@@ -188,6 +188,33 @@ static void *finishedContext = @"finishedContext";
     return _request;
 }
 
+/*
+ * Support for blocks
+ */
+- (FBRequest*)openUrl:(NSString *)url
+               params:(NSMutableDictionary *)params
+           httpMethod:(NSString *)httpMethod
+             callback:(void(^)(FBRequest *request, id result, NSError *error)) _block {
+    
+    [params setValue:@"json" forKey:@"format"];
+    [params setValue:kSDK forKey:@"sdk"];
+    [params setValue:kSDKVersion forKey:@"sdk_version"];
+    if ([self isSessionValid]) {
+        [params setValue:self.accessToken forKey:@"access_token"];
+    }
+    
+    [self extendAccessTokenIfNeeded];
+    
+    FBRequest* _request = [FBRequest getRequestWithParams:params
+                                               httpMethod:httpMethod
+                                                 callback:_block
+                                               requestURL:url];
+    [_requests addObject:_request];
+    [_request addObserver:self forKeyPath:requestFinishedKeyPath options:0 context:finishedContext];
+    [_request connect];
+    return _request;
+}
+
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == finishedContext) {
         FBRequest* _request = (FBRequest*)object;
@@ -561,6 +588,20 @@ static void *finishedContext = @"finishedContext";
                 delegate:delegate];
 }
 
+/*
+ * Support for blocks
+ */
+- (FBRequest*)requestWithMethodName:(NSString *)methodName
+                          andParams:(NSMutableDictionary *)params
+                      andHttpMethod:(NSString *)httpMethod
+                        callback:(void (^)(FBRequest *, id, NSError *))_block {
+    NSString * fullURL = [kRestserverBaseURL stringByAppendingString:methodName];
+    return [self openUrl:fullURL
+                  params:params
+              httpMethod:httpMethod
+                callback:_block];
+}
+
 /**
  * Make a request to the Facebook Graph API without any parameters.
  *
@@ -656,6 +697,21 @@ static void *finishedContext = @"finishedContext";
                   params:params
               httpMethod:httpMethod
                 delegate:delegate];
+}
+
+/*
+ * Support for blocks
+ */
+- (FBRequest*)requestWithGraphPath:(NSString *)graphPath
+                       params:(NSMutableDictionary*)params
+                       method:(NSString*)httpMethod
+                     callback:(void(^)(FBRequest *request, id result, NSError *error)) _block
+{
+    NSString * fullURL = [kGraphBaseURL stringByAppendingString:graphPath];
+    return [self openUrl:fullURL
+                  params:params
+              httpMethod:httpMethod
+                callback:_block];
 }
 
 /**

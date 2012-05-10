@@ -90,6 +90,21 @@
                      andHttpMethod:(NSString *)httpMethod
                        andDelegate:(id <FBRequestDelegate>)delegate;
 
+/*
+ * Support for blocks
+ */
+
+- (FBRequest*)requestWithGraphPath:(NSString *)graphPath
+                      params:(NSMutableDictionary*)params
+                      method:(NSString*)method
+                    callback:(void(^)(FBRequest *request, id result, NSError *error))_block;
+
+- (FBRequest*)requestWithMethodName:(NSString *)methodName
+                    andParams:(NSMutableDictionary *)params
+                andHttpMethod:(NSString *)method
+                     callback:(void(^)(FBRequest *request, id result, NSError *error))_block;
+
+
 - (void)dialog:(NSString *)action
    andDelegate:(id<FBDialogDelegate>)delegate;
 

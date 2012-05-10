@@ -46,6 +46,9 @@ static const NSTimeInterval kTimeoutInterval = 180.0;
             sessionDidExpire = _sessionDidExpire,
             error = _error;
 
+@synthesize FBRequestCallback = _FBRequestCallback;
+@synthesize usesBlockCallback;
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // class public
 
@@ -61,6 +64,28 @@ static const NSTimeInterval kTimeoutInterval = 180.0;
     request.params = params;
     request.connection = nil;
     request.responseText = nil;
+    
+    return request;
+}
+
+/*
+ * Support for blocks
+ */
+
++ (FBRequest*)getRequestWithParams:(NSMutableDictionary *)params
+                        httpMethod:(NSString *)httpMethod
+                          callback:(void(^)(FBRequest *request, id result, NSError *error))_block
+                        requestURL:(NSString *)url
+{
+    FBRequest* request = [[[FBRequest alloc] init] autorelease];
+    request.usesBlockCallback = YES;
+    request.delegate = nil;
+    request.url = url;
+    request.httpMethod = httpMethod;
+    request.params = params;
+    request.connection = nil;
+    request.responseText = nil;
+    request.FBRequestCallback = _block;
     
     return request;
 }
@@ -258,6 +283,7 @@ static const NSTimeInterval kTimeoutInterval = 180.0;
 
 /*
  * private helper function: handle the response data
+ * modified to support blocks
  */
 - (void)handleResponseData:(NSData *)data {
     if ([_delegate respondsToSelector:
@@ -265,23 +291,25 @@ static const NSTimeInterval kTimeoutInterval = 180.0;
         [_delegate request:self didLoadRawResponse:data];
     }
     
-    NSError* error = nil;
-    id result = [self parseJsonResponse:data error:&error];
-    self.error = error;  
-    
-    if ([_delegate respondsToSelector:@selector(request:didLoad:)] ||
-        [_delegate respondsToSelector:
-         @selector(request:didFailWithError:)]) {
-            
-            if (error) {
-                [self failWithError:error];
-            } else if ([_delegate respondsToSelector:
-                        @selector(request:didLoad:)]) {
-                [_delegate request:self didLoad:result];
-            }
-            
+    if (usesBlockCallback) {
+        NSError* error = nil;
+        id result = [self parseJsonResponse:data error:&error];
+        _FBRequestCallback(self, result, error);
+    }
+    else if ([_delegate respondsToSelector:@selector(request:didLoad:)] ||
+             [_delegate respondsToSelector:@selector(request:didFailWithError:)])
+    {
+        NSError* error = nil;
+        id result = [self parseJsonResponse:data error:&error];
+        
+        if (error) {
+            [self failWithError:error];
         }
-    
+        else if ([_delegate respondsToSelector:@selector(request:didLoad:)]) {
+            [_delegate request:self didLoad:(result == nil ? data : result)];
+        }
+        
+    }
 }
 
 
@@ -331,6 +359,7 @@ static const NSTimeInterval kTimeoutInterval = 180.0;
  * Free internal structure
  */
 - (void)dealloc {
+    [_FBRequestCallback release];
     [_connection cancel];
     [_connection release];
     [_responseText release];
