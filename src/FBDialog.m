@@ -18,7 +18,7 @@
 #import "FBDialog.h"
 #import "Facebook.h"
 #import "FBFrictionlessRequestSettings.h"
-#import "JSON.h"
+#import <AWSiOSSDk/SBJson.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // global
